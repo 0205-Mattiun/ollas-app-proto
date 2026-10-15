@@ -115,7 +115,6 @@ if "receta" not in st.session_state:
         "Huevos": 1, "Azúcar": 1, "Mantequilla": 1, "Aceite": 1
     }
 
-# Mapeo para mostrar el nombre del insumo con su contenido comercial
 opciones_catalogo = sorted(list(CATALOGO_DB.keys()))
 
 insumos_seleccionados = st.multiselect(
@@ -134,7 +133,6 @@ if insumos_seleccionados:
         col = cols[idx % 3]
         def_val = st.session_state.receta.get(insumo, 1)
         
-        # Obtener los datos del catálogo
         g_unitario = CATALOGO_DB[insumo]['contenido']
         costo_unitario = CATALOGO_DB[insumo]['costo']
         
@@ -146,27 +144,9 @@ if insumos_seleccionados:
             key=f"pqt_{insumo}",
             help=f"Contenido: {g_unitario} g por paquete | Costo: S/ {costo_unitario:.2f}"
         )
-        # Mostrar el detalle visual debajo de la casilla
         g_totales_item = cantidades_paquetes[insumo] * g_unitario
         costo_total_item = cantidades_paquetes[insumo] * costo_unitario
         col.caption(f"📦 Paquete: **{g_unitario} g** (S/ {costo_unitario:.2f})  \n⚖️ Total: **{g_totales_item} g** | **S/ {costo_total_item:.2f}**")
-
-    # Tabla resumen de la receta
-    st.write("##### 📝 Resumen del Lote Seleccionado:")
-    tabla_datos = []
-    for insumo in insumos_seleccionados:
-        pqt = cantidades_paquetes[insumo]
-        g_unit = CATALOGO_DB[insumo]['contenido']
-        c_unit = CATALOGO_DB[insumo]['costo']
-        tabla_datos.append({
-            "Insumo": insumo,
-            "Contenido Pqt": f"{g_unit} g",
-            "Costo Pqt": f"S/ {c_unit:.2f}",
-            "N° Paquetes": pqt,
-            "Gramos Totales": f"{pqt * g_unit} g",
-            "Costo Total": f"S/ {pqt * c_unit:.2f}"
-        })
-    st.dataframe(tabla_datos, use_container_width=True)
 
 # --- CÁLCULOS CONTABLES ---
 costo_total_lote = 0.0

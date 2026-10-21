@@ -9,7 +9,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# BASE DE DATOS LOCAL DE 76 INSUMOS
+# BASE DE DATOS LOCAL DE 76 INSUMOS (Valores por defecto)
 CATALOGO_DB = {
     "Harina": {"costo": 6.00, "contenido": 1000},
     "Queso": {"costo": 18.00, "contenido": 1000},
@@ -108,54 +108,53 @@ with st.sidebar:
 # --- SECCIÓN PRINCIPAL: SELECCIÓN DE INSUMOS ---
 st.header("📋 Selección de Insumos del Lote")
 
-# Inicializar estado de la receta si no existe
-if "receta" not in st.session_state:
-    st.session_state.receta = {
-        "Harina": 1, "Queso": 1, "Sal": 1,
-        "Huevos": 1, "Azúcar": 1, "Mantequilla": 1, "Aceite": 1
-    }
-
 opciones_catalogo = sorted(list(CATALOGO_DB.keys()))
 
 insumos_seleccionados = st.multiselect(
     "Selecciona o busca ingredientes (Catálogo de 76 productos):",
     options=opciones_catalogo,
-    default=list(st.session_state.receta.keys()),
-    format_func=lambda item: f"{item} ({CATALOGO_DB[item]['contenido']} g/u)"
+    default=["Harina", "Queso", "Sal", "Huevos", "Azúcar", "Mantequilla", "Aceite"]
 )
 
-# Ajuste dinámico de la cantidad de paquetes por insumo
-cantidades_paquetes = {}
+# Estructura para registrar los consumos modificados
+datos_insumos = {}
+
 if insumos_seleccionados:
-    st.write("##### Configuración de Paquetes Usados:")
-    cols = st.columns(min(len(insumos_seleccionados), 3))
-    for idx, insumo in enumerate(insumos_seleccionados):
-        col = cols[idx % 3]
-        def_val = st.session_state.receta.get(insumo, 1)
+    st.write("##### ⚖️ Configuración de Gramos y Precios de Compra:")
+    
+    for insumo in insumos_seleccionados:
+        db = CATALOGO_DB[insumo]
         
-        g_unitario = CATALOGO_DB[insumo]['contenido']
-        costo_unitario = CATALOGO_DB[insumo]['costo']
+        # Fila con 2 columnas por cada ingrediente seleccionado
+        col_g, col_p = st.columns([1, 1])
         
-        cantidades_paquetes[insumo] = col.number_input(
-            f"N° Paquetes: {insumo}",
-            min_value=1,
-            value=int(def_val),
-            step=1,
-            key=f"pqt_{insumo}",
-            help=f"Contenido: {g_unitario} g por paquete | Costo: S/ {costo_unitario:.2f}"
-        )
-        g_totales_item = cantidades_paquetes[insumo] * g_unitario
-        costo_total_item = cantidades_paquetes[insumo] * costo_unitario
-        col.caption(f"📦 Paquete: **{g_unitario} g** (S/ {costo_unitario:.2f})  \n⚖️ Total: **{g_totales_item} g** | **S/ {costo_total_item:.2f}**")
+        with col_g:
+            gramos = st.number_input(
+                f"Gramos de {insumo} (g):",
+                min_value=0.0,
+                value=float(db["contenido"]),
+                step=50.0,
+                key=f"g_{insumo}"
+            )
+            
+        with col_p:
+            precio = st.number_input(
+                f"Precio pagado por {insumo} (S/):",
+                min_value=0.0,
+                value=float(db["costo"]),
+                step=0.5,
+                key=f"p_{insumo}"
+            )
+            
+        datos_insumos[insumo] = {"gramos": gramos, "precio": precio}
 
 # --- CÁLCULOS CONTABLES ---
 costo_total_lote = 0.0
 gramos_totales_lote = 0.0
 
-for insumo, pqt_count in cantidades_paquetes.items():
-    db = CATALOGO_DB[insumo]
-    costo_total_lote += pqt_count * db["costo"]
-    gramos_totales_lote += pqt_count * db["contenido"]
+for insumo, datos in datos_insumos.items():
+    costo_total_lote += datos["precio"]
+    gramos_totales_lote += datos["gramos"]
 
 cantidad_producida = int(gramos_totales_lote // porcion_g) if porcion_g > 0 else 0
 cvu = (costo_total_lote / cantidad_producida) if cantidad_producida > 0 else 0.0
